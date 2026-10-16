@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Mi Banca</title>
+    <style>
+        /* CSS Styles for iOS look */
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f2f2f7; margin: 0; padding: 0; }
+        .container { padding: 20px; padding-bottom: 80px; }
+        .card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        h1, h2, h3 { margin-top: 0; color: #1c1c1e; }
+        p { color: #3c3c43; }
+        .btn { background: #007aff; color: white; border: none; padding: 12px 15px; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 10px; text-align: center; }
+        .btn-danger { background: #ff3b30; }
+        .btn-success { background: #34c759; }
+        .btn-secondary { background: #8e8e93; }
+        input, select { width: 100%; padding: 12px; margin: 5px 0 15px 0; border: 1px solid #c7c7cc; border-radius: 10px; box-sizing: border-box; font-size: 16px; background: #fafafa;}
+        .tab-bar { position: fixed; bottom: 0; width: 100%; background: rgba(248, 248, 248, 0.95); backdrop-filter: blur(10px); border-top: 1px solid #ccc; display: flex; justify-content: space-around; padding: 10px 0; padding-bottom: env(safe-area-inset-bottom, 20px); z-index: 1000; }
+        .tab { color: #8e8e93; cursor: pointer; font-size: 11px; text-align: center; width: 25%; font-weight: 500; }
+        .tab.active { color: #007aff; }
+        .tab-icon { font-size: 24px; margin-bottom: 2px; display: block; }
+        .view { display: none; }
+        .active-view { display: block; }
+        .bot-msg { background: #e5e5ea; padding: 15px; border-radius: 12px; font-style: italic; font-size: 15px; margin-bottom: 10px; color: #1c1c1e; border-left: 4px solid #007aff; }
+        .bet-item { border-bottom: 1px solid #e5e5ea; padding: 15px 0; }
+        .bet-item:last-child { border-bottom: none; }
+        .row { display: flex; justify-content: space-between; align-items: center;}
+        .banca-total { font-size: 38px; font-weight: 700; color: #000; text-align: center; margin: 15px 0; letter-spacing: -1px; }
+        .badge { background: #e5e5ea; padding: 3px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; }
+        #alert-zone { background: #ffebee; color: #d32f2f; padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 14px; text-align: center; font-weight: bold; }
+        .history-item { font-size: 14px; padding: 8px 0; border-bottom: 1px solid #eee; }
+    </style>
+</head>
+<body>
+    <div class="container active-view" id="view-dashboard">
+        <h2>Mi Banca 📊</h2>
+        <div class="card">
+            <h3>Banca Actual</h3>
+            <div class="banca-total">$<span id="banca-amount">0</span></div>
+        </div>
+        <div class="card">
+            <h3>Bot Asesor 🤖</h3>
+            <div class="bot-msg" id="bot-advice">Analizando tus datos...</div>
+        </div>
+        <div class="card">
+            <h3>Límites y Control</h3>
+            <p><strong>Tope por apuesta (3%):</strong> $<span id="max-bet">0</span></p>
+            <p><strong>Tope diario (10%):</strong> $<span id="max-daily">0</span></p>
+            <div id="alert-zone" style="display:none;">¡Alerta roja! Estás muy cerca de tu límite diario de apuestas.</div>
+        </div>
+    </div>
+
+    <div class="container view" id="view-agenda">
+        <h2>Agenda de Apuestas 📅</h2>
+        <div class="card">
+            <h3>Cargar Partido</h3>
+            <label>Partido / Evento</label>
+            <input type="text" id="bet-match" placeholder="Ej. River Plate vs ...">
+            
+            <label>Liga</label>
+            <select id="bet-league"></select>
+            
+            <label>Cuota</label>
+            <input type="number" step="0.01" id="bet-odds" placeholder="Ej. 1.85">
+            
+            <label>Monto a apostar ($)</label>
+            <input type="number" id="bet-amount" placeholder="¿Cuánto vas a poner?">
+            
+            <button class="btn" onclick="addBet()">Agendar Apuesta</button>
+        </div>
+        
+        <div class="card">
+            <h3>En Juego (Pendientes)</h3>
+            <div id="bets-list">No hay apuestas pendientes.</div>
+        </div>
+    </div>
+
+    <div class="container view" id="view-retiros">
+        <h2>Gestión de Retiros 💸</h2>
+        <div class="card">
+            <p style="font-size: 14px; margin-bottom: 15px;">Retirar una parte de las ganancias es clave para que el banco no se evapore. Registrá acá lo que sacás de tu casa de apuestas.</p>
+            <label>Monto a retirar ($)</label>
+            <input type="number" id="withdraw-amount" placeholder="Ej. 20000">
+            
+            <label>Destino / Categoría</label>
+            <select id="withdraw-category">
+                <option value="Servicios">Servicios / Cuentas</option>
+                <option value="Salir">Salir / Ocio</option>
+                <option value="Invertir">Invertir</option>
+                <option value="Otro">Otro gasto</option>
+            </select>
+            
+            <button class="btn btn-success" onclick="withdraw()">Retirar Plata</button>
+        </div>
+        <div class="card">
+            <h3>Historial de Retiros</h3>
+            <div id="withdraw-list">Aún no hay retiros registrados.</div>
+        </div>
+    </div>
+
+    <div class="container view" id="view-ajustes">
+        <h2>Ajustes ⚙️</h2>
+        <div class="card">
+            <h3>Configurar Banca Manual</h3>
+            <p style="font-size: 12px; color: gray;">Usá esto si depositaste más plata o para empezar.</p>
+            <input type="number" id="set-banca-amount" placeholder="Plata total en tu cuenta">
+            <button class="btn btn-secondary" onclick="setBanca()">Actualizar Banca</button>
+        </div>
+        
+        <div class="card">
+            <h3>Mis Ligas</h3>
+            <div id="leagues-list" style="margin-bottom:15px; font-size:14px; line-height: 1.6;"></div>
+            <input type="text" id="new-league-name" placeholder="Nombre de la nueva Liga">
+            <button class="btn btn-secondary" onclick="addLeague()">Añadir Liga</button>
+        </div>
+        
+        <div class="card">
+            <h3>Seguridad de Datos</h3>
+            <p style="font-size: 12px; color: gray;">Hacé una copia por si borrás el historial de Safari.</p>
+            <button class="btn" onclick="exportData()">Exportar Copia (Copiar texto)</button>
+            <button class="btn btn-danger" onclick="importData()">Restaurar Datos</button>
+        </div>
+    </div>
+
+    <div class="tab-bar">
+        <div class="tab active" id="tab-dashboard" onclick="switchTab('dashboard')"><span class="tab-icon">📊</span>Inicio</div>
+        <div class="tab" id="tab-agenda" onclick="switchTab('agenda')"><span class="tab-icon">📅</span>Agenda</div>
+        <div class="tab" id="tab-retiros" onclick="switchTab('retiros')"><span class="tab-icon">💸</span>Retiros</div>
+        <div class="tab" id="tab-ajustes" onclick="switchTab('ajustes')"><span class="tab-icon">⚙️</span>Ajustes</div>
+    </div>
+
+    <script>
+        // --- ESTADO INICIAL ---
+        let state = {
+            banca: 0,
+            leagues: ['Liga Argentina', 'Premier League', 'Serie A', 'Bundesliga', 'Turquía', 'Portugal', 'Libertadores', 'Sudamericana', 'Champions', 'Otros'],
+            bets: [],
+            withdrawals: [],
+            maxBetPercent: 0.03,
+            maxDailyPercent: 0.10
+        };
+
+        // --- CARGAR Y GUARDAR ---
+        function loadState() {
+            const saved = localStorage.getItem('mibanca_state_v1');
+            if (saved) {
+                state = { ...state, ...JSON.parse(saved) };
+            }
+            updateUI();
+        }
+
+        function saveState() {
+            localStorage.setItem('mibanca_state_v1', JSON.stringify(state));
+            updateUI();
+        }
+
+        // --- NAVEGACIÓN ---
+        function switchTab(tabId) {
+            document.querySelectorAll('.view').forEach(el => el.classList.remove('active-view'));
+            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+            document.getElementById('view-' + tabId).classList.add('active-view');
+            document.getElementById('tab-' + tabId).classList.add('active');
+        }
+
+        // --- ACTUALIZAR INTERFAZ ---
+        function updateUI() {
+            // Textos de banca
+            document.getElementById('banca-amount').innerText = state.banca.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('max-bet').innerText = (state.banca * state.maxBetPercent).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            
+            // Calculo de gasto diario
+            const todayStr = new Date().toLocaleDateString();
+            const todayBetsAmount = state.bets.filter(b => b.date === todayStr || b.status === 'pending').reduce((sum, b) => sum + b.amount, 0);
+            const dailyMax = state.banca * state.maxDailyPercent;
+            
+            document.getElementById('max-daily').innerText = dailyMax.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            
+            // Alerta visual de límite
+            const alertZone = document.getElementById('alert-zone');
+            if (state.banca > 0 && todayBetsAmount >= dailyMax * 0.8) {
+                alertZone.style.display = 'block';
+            } else {
+                alertZone.style.display = 'none';
+            }
+
+            // Actualizar Selector de Ligas
+            const leagueSelect = document.getElementById('bet-league');
+            leagueSelect.innerHTML = '';
+            state.leagues.forEach(l => {
+                let opt = document.createElement('option');
+                opt.value = l; opt.innerText = l;
+                leagueSelect.appendChild(opt);
+            });
+
+            // Actualizar lista de Ligas en Ajustes
+            const leaguesList = document.getElementById('leagues-list');
+            leaguesList.innerHTML = state.leagues.map(l => `<span class="badge" style="margin:2px; display:inline-block;">${l}</span>`).join(' ');
+
+            // Renderizar Apuestas Pendientes
+            const betsList = document.getElementById('bets-list');
+            const pendingBets = state.bets.filter(b => b.status === 'pending');
+            if (pendingBets.length === 0) {
+                betsList.innerHTML = '<p style="color:gray; font-size:14px;">No hay apuestas cargadas o en curso.</p>';
+            } else {
+                betsList.innerHTML = '';
+                pendingBets.forEach(b => {
+                    let div = document.createElement('div');
+                    div.className = 'bet-item';
+                    div.innerHTML = `
+                        <div style="margin-bottom: 8px;"><strong>${b.match}</strong> <span class="badge">${b.league}</span></div>
+                        <div class="row">
+                            <div style="font-size:14px; color:#3c3c43;">Cuota: <b>${b.odds}</b> | Apuesta: <b>$${b.amount}</b></div>
+                            <div style="display:flex; gap:5px;">
+                                <button class="btn btn-success" style="margin:0; padding: 8px 12px; width:auto;" onclick="resolveBet(${b.id}, 'won')">Ganada</button>
+                                <button class="btn btn-danger" style="margin:0; padding: 8px 12px; width:auto;" onclick="resolveBet(${b.id}, 'lost')">Perdida</button>
+                            </div>
+                        </div>
+                    `;
+                    betsList.appendChild(div);
+                });
+            }
+
+            // Renderizar Retiros
+            const withdrawList = document.getElementById('withdraw-list');
+            if(state.withdrawals.length === 0) {
+                withdrawList.innerHTML = '<p style="color:gray; font-size:14px;">Todavía no retiraste nada.</p>';
+            } else {
+                withdrawList.innerHTML = state.withdrawals.map(w => `
+                    <div class="history-item row">
+                        <div>📅 ${w.date} - <span class="badge">${w.category}</span></div>
+                        <div style="font-weight:bold; color:#34c759;">-$${w.amount}</div>
+                    </div>
+                `).join('');
+            }
+
+            // BOT ASESOR LÓGICA (Tommy's Bot)
+            let botMsg = "Analizando tu desempeño... ";
+            if (state.banca === 0) {
+                botMsg = "¡Hola Tommy! Empecemos: andá a Ajustes y poné con cuánta plata arrancás tu banca hoy.";
+            } else if (todayBetsAmount > dailyMax) {
+                botMsg = "⚠️ ¡Atención Tommy! Superaste o estás muy al límite del 10% diario. Hoy ya no apuestes más, cuidá las ganancias y controlá las pérdidas.";
+            } else {
+                // Verificar racha de ganancias (últimas 3 resueltas)
+                const resolvedBets = state.bets.filter(b => b.status !== 'pending').slice(-3);
+                if (resolvedBets.length === 3 && resolvedBets.every(b => b.status === 'won')) {
+                    botMsg = "🔥 ¡Venís en racha! Metiste las últimas 3. Te sugiero retirar un % de la ganancia a tu cuenta bancaria (Pestaña Retiros) para materializar la plata.";
+                } else if (resolvedBets.length > 0 && resolvedBets[resolvedBets.length - 1].status === 'lost') {
+                    botMsg = "💡 Acabás de perder una apuesta. No intentes 'recuperar' en caliente. Analizá bien tu próxima jugada, respetá el límite del 3% y seguí tu estrategia.";
+                } else {
+                    botMsg = "✅ Todo en orden. Recordá buscar apuestas con valor, fijarte titulares/suplentes y no apostar con el corazón (¡A menos que sea River!). 😉";
+                }
+            }
+            document.getElementById('bot-advice').innerText = botMsg;
+        }
+
+        // --- FUNCIONALIDAD ---
+        function setBanca() {
+            const input = document.getElementById('set-banca-amount');
+            const amt = parseFloat(input.value);
+            if (!isNaN(amt) && amt >= 0) {
+                state.banca = amt;
+                saveState();
+                alert("Banca actualizada correctamente.");
+                input.value = '';
+                switchTab('dashboard');
+            } else {
+                alert("Ingresá un número válido.");
+            }
+        }
+
+        function addLeague() {
+            const input = document.getElementById('new-league-name');
+            const val = input.value.trim();
+            if(val && !state.leagues.includes(val)) {
+                state.leagues.push(val);
+                saveState();
+                input.value = '';
+            }
+        }
+
+        function addBet() {
+            const match = document.getElementById('bet-match').value;
+            const league = document.getElementById('bet-league').value;
+            const odds = parseFloat(document.getElementById('bet-odds').value);
+            const amount = parseFloat(document.getElementById('bet-amount').value);
+            
+            if(!match || !odds || isNaN(amount)) return alert("Completá todos los datos de la apuesta.");
+            
+            if (amount > state.banca) return alert("No tenés suficiente banca para esta apuesta.");
+            
+            const maxBetRecomendado = state.banca * state.maxBetPercent;
+            if (amount > maxBetRecomendado) {
+                if(!confirm(`⚠️ Consejo: Tu apuesta recomendada máxima es $${maxBetRecomendado.toFixed(2)} (3%). Querés apostar $${amount} igual?`)) return;
+            }
+
+            state.banca -= amount; // Descontamos del total al agendar
+            state.bets.push({
+                id: Date.now(),
+                date: new Date().toLocaleDateString(),
+                match, league, odds, amount, status: 'pending'
+            });
+            
+            document.getElementById('bet-match').value = '';
+            document.getElementById('bet-amount').value = '';
+            document.getElementById('bet-odds').value = '';
+            
+            saveState();
+            switchTab('dashboard');
+        }
+
+        function resolveBet(id, result) {
+            const bet = state.bets.find(b => b.id === id);
+            if(bet) {
+                bet.status = result;
+                if(result === 'won') {
+                    let winAmount = bet.amount * bet.odds;
+                    state.banca += winAmount;
+                    alert(`¡Excelente! Ganaste $${winAmount.toFixed(2)}. Tu nueva banca es $${state.banca.toFixed(2)}.`);
+                } else {
+                    alert("Apuesta perdida. A seguir con cabeza fría.");
+                }
+                saveState();
+            }
+        }
+
+        function withdraw() {
+            const amt = parseFloat(document.getElementById('withdraw-amount').value);
+            const cat = document.getElementById('withdraw-category').value;
+            if(!isNaN(amt) && amt > 0 && amt <= state.banca) {
+                state.banca -= amt;
+                state.withdrawals.unshift({ date: new Date().toLocaleDateString(), amount: amt, category: cat });
+                alert(`¡Retiro exitoso! Pasaste $${amt} a tu banco/billetera para: ${cat}.`);
+                document.getElementById('withdraw-amount').value = '';
+                saveState();
+                switchTab('dashboard');
+            } else {
+                alert("Monto inválido o superior a tu banca disponible.");
+            }
+        }
+
+        function exportData() {
+            const data = JSON.stringify(state);
+            prompt("Copiá todo este texto y guardalo en la app de Notas de tu iPhone como copia de seguridad:", data);
+        }
+
+        function importData() {
+            const data = prompt("Pegá acá el texto de tu copia de seguridad:");
+            if(data) {
+                try {
+                    const parsed = JSON.parse(data);
+                    if(parsed.banca !== undefined) {
+                        state = parsed;
+                        saveState();
+                        alert("¡Datos restaurados correctamente!");
+                    } else { throw new Error("Datos inválidos"); }
+                } catch(e) {
+                    alert("Error. El texto pegado no es un formato válido.");
+                }
+            }
+        }
+
+        // Iniciar
+        window.onload = loadState;
+    </script>
+</body>
+</html>
